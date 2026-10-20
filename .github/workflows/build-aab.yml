@@ -1,0 +1,21 @@
+name: Build AAB for Play Store
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+        with: {node-version: 18}
+            - uses: actions/setup-java@v4
+        with: {distribution: 'temurin', java-version: '17'}
+            - run: npm install
+            - run: npx cap add android && npx cap copy
+            - run: |
+          cd android
+          echo "Generando keystore..."
+          keytool -genkey -v -keystore app/my-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias my-key-alias -storepass 123456 -keypass 123456 -dname "CN=Antifraude, OU=Creditos, O=Antifraude, L=Mexico, S=CDMX, C=MX"
+          chmod +x gradlew
+          ./gradlew bundleRelease -Pandroid.injected.signing.store.file=my-release-key.jks -Pandroid.injected.signing.store.password=123456 -Pandroid.injected.signing.key.alias=my-key-alias -Pandroid.injected.signing.key.password=123456
+            - uses: actions/upload-artifact@v4
+        with: {name: antifraude-aab, path: android/app/build/outputs/bundle/release/app-release.aab}
